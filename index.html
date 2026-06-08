@@ -722,6 +722,44 @@
       entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') })
     }, { threshold: 0.1 })
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el))
+
+    // ── Retell widget open trigger ────────────────────────────────────────
+    // data-auto-open fires before the custom element is ready on plain HTML.
+    // Poll until the <retell-chat> element exists, then trigger it to open
+    // via every available method: element API, shadow-DOM FAB click, and
+    // a synthetic composed click event.
+    (function openRetellChat() {
+      var attempts = 0
+      var maxAttempts = 40   // try for up to 8 seconds (40 × 200ms)
+
+      function tryOpen() {
+        attempts++
+        var el = document.querySelector('retell-chat')
+        if (!el) {
+          if (attempts < maxAttempts) setTimeout(tryOpen, 200)
+          return
+        }
+
+        // Method 1: element exposes an open() method
+        if (typeof el.open === 'function') { el.open(); return }
+
+        // Method 2: click the shadow-DOM FAB button directly
+        var shadow = el.shadowRoot
+        if (shadow) {
+          var btn = shadow.querySelector('button')
+          if (btn) { btn.click(); return }
+        }
+
+        // Method 3: composedPath-safe synthetic click on the host element
+        el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true, cancelable: true }))
+
+        // Method 4: try again shortly — widget may still be initialising
+        if (attempts < maxAttempts) setTimeout(tryOpen, 300)
+      }
+
+      // Start after a short delay to let the module script execute
+      setTimeout(tryOpen, 800)
+    })()
   </script>
 </body>
 </html>
