@@ -723,18 +723,59 @@
     }, { threshold: 0.1 })
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el))
 
-    // ── Retell widget: open + hide branding ──────────────────────────────
-    var HIDE_CSS = [
-      'img[src*="retell" i], img[alt*="retell" i], svg[class*="logo" i],',
-      '[class*="retell-logo"], [class*="logo"][class*="retell"],',
-      'header img, header svg { display: none !important; }',
-      'a[href*="retell.ai"], [class*="powered"], [class*="PoweredBy"],',
-      'footer, [class*="footer"] { display: none !important; }'
-    ].join(' ')
+    // ── Retell widget: open + focus fix + branding overlay ───────────────
+    var lastActivity = 0
+
+    // Track user activity in the chat area
+    document.addEventListener('keydown', function() { lastActivity = Date.now() }, true)
+    document.addEventListener('pointerdown', function(e) {
+      var host = document.querySelector('retell-chat')
+      if (!host) return
+      var r = host.getBoundingClientRect()
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        lastActivity = Date.now()
+      }
+    }, true)
+
+    // Refocus loop — clicks bottom of chat panel if body stole focus after chat activity
+    setInterval(function() {
+      var active = document.activeElement
+      if (active && active !== document.body && active !== document.documentElement) return
+      if (Date.now() - lastActivity > 900) return
+      var host = document.querySelector('retell-chat')
+      if (!host) return
+      var r = host.getBoundingClientRect()
+      if (r.width === 0) return
+      var target = document.elementFromPoint(r.left + r.width / 2, r.bottom - 36)
+      if (target && target !== document.body && target !== document.documentElement) {
+        target.click()
+        lastActivity = 0
+      }
+    }, 180)
+
+    // Branding overlay — cover Retell logo with "Primary Coastal Care"
+    var brandOverlay = document.createElement('div')
+    brandOverlay.style.cssText = [
+      'position:fixed;z-index:99999;display:none;align-items:center;gap:8px;',
+      'padding-left:14px;background:#1D6FA4;pointer-events:none;user-select:none;',
+      'height:56px;border-radius:0;'
+    ].join('')
+    brandOverlay.innerHTML = '<span style="color:white;font-weight:700;font-size:13px;font-family:sans-serif;">Primary Coastal Care</span>'
+    document.body.appendChild(brandOverlay)
+
+    setInterval(function() {
+      var host = document.querySelector('retell-chat')
+      if (!host) return
+      var r = host.getBoundingClientRect()
+      if (r.width === 0) { brandOverlay.style.display = 'none'; return }
+      brandOverlay.style.display = 'flex'
+      brandOverlay.style.top     = r.top + 'px'
+      brandOverlay.style.left    = r.left + 'px'
+      brandOverlay.style.width   = Math.round(r.width * 0.65) + 'px'   // cover logo only, not X button
+    }, 300)
 
     ;(function setupRetell() {
       var attempts = 0
-      var branded  = false
       var opened   = false
 
       function trySetup() {
@@ -745,25 +786,13 @@
           return
         }
 
-        // 1. Hide Retell branding via shadow DOM CSS injection
-        if (!branded) {
-          var shadow = el.shadowRoot
-          if (shadow && !shadow.querySelector('#pcc-hide')) {
-            var style = document.createElement('style')
-            style.id = 'pcc-hide'
-            style.textContent = HIDE_CSS
-            shadow.appendChild(style)
-            branded = true
-          }
-        }
-
-        // 2. Open the widget
+        // Open the widget
         if (!opened) {
           if (typeof el.open === 'function') { el.open(); opened = true }
           else {
-            var shadow2 = el.shadowRoot
-            if (shadow2) {
-              var btn = shadow2.querySelector('button')
+            var shadow = el.shadowRoot
+            if (shadow) {
+              var btn = shadow.querySelector('button')
               if (btn) { btn.click(); opened = true }
             }
             if (!opened) {
@@ -772,7 +801,7 @@
           }
         }
 
-        if (!branded || !opened) {
+        if (!opened) {
           if (attempts < 50) setTimeout(trySetup, 300)
         }
       }
