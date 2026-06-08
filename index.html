@@ -753,25 +753,80 @@
       }
     }, 180)
 
-    // Branding overlay — cover Retell logo with "Primary Coastal Care"
-    var brandOverlay = document.createElement('div')
-    brandOverlay.style.cssText = [
-      'position:fixed;z-index:99999;display:none;align-items:center;gap:8px;',
-      'padding-left:14px;background:#1D6FA4;pointer-events:none;user-select:none;',
-      'height:56px;border-radius:0;'
+    // ── Branding overlay: CareSync infinity logo + "Primary Coastal Care" ──
+    var LOGO_SVG = [
+      '<svg width="28" height="18" viewBox="0 0 70 44" fill="none" xmlns="http://www.w3.org/2000/svg">',
+        '<defs><linearGradient id="pcG" x1="0" y1="0" x2="70" y2="44" gradientUnits="userSpaceOnUse">',
+          '<stop offset="0%" stop-color="#27AE60"/><stop offset="50%" stop-color="#16A085"/>',
+          '<stop offset="100%" stop-color="#1B6FA4"/></linearGradient></defs>',
+        '<ellipse cx="22" cy="22" rx="18" ry="13" stroke="#1B6FA4" stroke-width="4" fill="none" opacity="0.6"/>',
+        '<ellipse cx="48" cy="22" rx="18" ry="13" stroke="#1B6FA4" stroke-width="4" fill="none" opacity="0.6"/>',
+        '<path d="M35 22 C31 14 23 8 17 8 C9 8 4 14 4 22 C4 30 9 36 17 36 C23 36 31 30 35 22 Z" stroke="url(#pcG)" stroke-width="4.5" fill="none"/>',
+        '<path d="M35 22 C39 14 47 8 53 8 C61 8 66 14 66 22 C66 30 61 36 53 36 C47 36 39 30 35 22 Z" stroke="url(#pcG)" stroke-width="4.5" fill="none"/>',
+      '</svg>'
     ].join('')
-    brandOverlay.innerHTML = '<span style="color:white;font-weight:700;font-size:13px;font-family:sans-serif;">Primary Coastal Care</span>'
+
+    var brandOverlay = document.createElement('div')
+    brandOverlay.style.cssText = 'position:fixed;z-index:99999;display:none;align-items:center;gap:8px;padding-left:12px;background:#1D6FA4;pointer-events:none;user-select:none;height:56px;'
+    brandOverlay.innerHTML = LOGO_SVG + '<span style="color:white;font-weight:700;font-size:13px;font-family:\'Plus Jakarta Sans\',sans-serif;">Primary Coastal Care</span>'
     document.body.appendChild(brandOverlay)
+
+    // ── New Chat button: reloads widget for a fresh conversation ──────────
+    var newChatBtn = document.createElement('button')
+    newChatBtn.textContent = '+ New Chat'
+    newChatBtn.style.cssText = [
+      'position:fixed;z-index:99999;display:none;',
+      'align-items:center;justify-content:center;gap:6px;',
+      'background:#1D6FA4;color:white;border:none;cursor:pointer;',
+      'font-weight:600;font-size:12px;padding:7px 14px;',
+      'border-radius:20px;box-shadow:0 2px 12px rgba(29,111,164,0.4);',
+      'font-family:\'Plus Jakarta Sans\',sans-serif;',
+      'transition:background 0.2s;'
+    ].join('')
+    newChatBtn.addEventListener('mouseenter', function() { newChatBtn.style.background = '#155a87' })
+    newChatBtn.addEventListener('mouseleave', function() { newChatBtn.style.background = '#1D6FA4' })
+    newChatBtn.addEventListener('click', function() {
+      // Remove existing widget and script, then re-inject for a fresh session
+      var existingChat = document.querySelector('retell-chat')
+      if (existingChat) existingChat.remove()
+      var existingScript = document.getElementById('retell-widget')
+      if (existingScript) existingScript.remove()
+      var s = document.createElement('script')
+      s.id = 'retell-widget'
+      s.src = 'https://dashboard.retellai.com/retell-widget-v2.js'
+      s.type = 'module'
+      s.setAttribute('data-public-key',         'public_key_9a7798ad73f1686e462f5')
+      s.setAttribute('data-agent-id',            'agent_9f15f68497ac5143bbb8f9c14c')
+      s.setAttribute('data-title',               'Primary Coastal Care')
+      s.setAttribute('data-bot-name',            'PCC Assistant')
+      s.setAttribute('data-color',               '#1D6FA4')
+      s.setAttribute('data-theme-color',         '#F0F7FF')
+      s.setAttribute('data-component-color',     '#FFFFFF')
+      s.setAttribute('data-fab-text',            'Chat with Us')
+      s.setAttribute('data-popup-message',       'Hi! How can we help you today?')
+      s.setAttribute('data-show-ai-popup',       'true')
+      s.setAttribute('data-show-ai-popup-time',  '2')
+      s.setAttribute('data-auto-open',           'true')
+      document.head.appendChild(s)
+    })
+    document.body.appendChild(newChatBtn)
 
     setInterval(function() {
       var host = document.querySelector('retell-chat')
-      if (!host) return
+      if (!host) { brandOverlay.style.display = 'none'; newChatBtn.style.display = 'none'; return }
       var r = host.getBoundingClientRect()
-      if (r.width === 0) { brandOverlay.style.display = 'none'; return }
+      if (r.width === 0) { brandOverlay.style.display = 'none'; newChatBtn.style.display = 'none'; return }
+
+      // Position branding overlay over left 65% of chat header (avoids X button)
       brandOverlay.style.display = 'flex'
       brandOverlay.style.top     = r.top + 'px'
       brandOverlay.style.left    = r.left + 'px'
-      brandOverlay.style.width   = Math.round(r.width * 0.65) + 'px'   // cover logo only, not X button
+      brandOverlay.style.width   = Math.round(r.width * 0.65) + 'px'
+
+      // Position "New Chat" button just above the chat panel, right-aligned
+      newChatBtn.style.display = 'flex'
+      newChatBtn.style.top     = (r.top - 42) + 'px'
+      newChatBtn.style.left    = (r.right - 110) + 'px'
     }, 300)
 
     ;(function setupRetell() {
