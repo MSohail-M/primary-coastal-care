@@ -803,9 +803,21 @@
       newChatBtn.style.top     = (r.top - 42) + 'px'
       newChatBtn.style.left    = (r.right - 110) + 'px'
 
-      // "Powered by Retell" → "Powered by CareSync". Edit the link in place
-      // (never remove nodes — the widget's renderer owns them and reapplies,
-      // so this check runs every tick)
+      // Inject CSS once to hide Retell header logo
+      if (!shadow._branded) {
+        var style = document.createElement('style')
+        style.textContent = [
+          'img[src*="retell"]{display:none!important}',
+          '[class*="logo"] img{display:none!important}',
+          '[class*="Logo"] img{display:none!important}',
+          '[class*="brand"] img{display:none!important}',
+          'a[href*="retell"]:not([class*="powered"]):not([class*="credit"]){pointer-events:none!important}',
+        ].join('')
+        shadow.appendChild(style)
+        shadow._branded = true
+      }
+
+      // "Powered by Retell" → "Powered by CareSync"
       var credit = shadow.querySelector('[class*="poweredBy"] a')
       if (credit && credit.textContent !== 'CareSync') {
         credit.textContent = 'CareSync'
