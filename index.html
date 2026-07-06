@@ -16,9 +16,10 @@
     id="retell-widget"
     src="https://dashboard.retellai.com/retell-widget-v2.js"
     type="module"
-    data-public-key="public_key_9a7798ad73f1686e462f5"
-    data-agent-id="agent_9f15f68497ac5143bbb8f9c14c"
-    data-title="Primary Coastal Care"
+    data-public-key="public_key_1d9409f2614fc5ca5358d"
+    data-agent-id="agent_e5d6b6f3ee5f047d5c4c851084"
+    data-title="Live agent"
+    data-logo-url="/live-agent.svg"
     data-bot-name="PCC Assistant"
     data-color="#1D6FA4"
     data-theme-color="#FFFFFF"
@@ -615,7 +616,7 @@
         <span class="section-tag" style="background: rgba(255,255,255,0.15); color: white;">AI Assistant</span>
         <h2 style="color: white; margin-top: 10px;">Questions? Chat with Our<br/>AI Assistant — 24/7</h2>
         <p>Ask about appointment availability, clinic hours, services, insurance questions, and more. Our AI is always ready to help.</p>
-        <button class="btn-white" onclick="document.querySelector('retell-chat')?.click?.()">
+        <button class="btn-white" onclick="openRetellChat()">
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2h12a1 1 0 011 1v8a1 1 0 01-1 1H5l-4 4V3a1 1 0 011-1z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Start Chat Now
         </button>
@@ -723,77 +724,31 @@
     }, { threshold: 0.1 })
     document.querySelectorAll('.fade-in').forEach(el => observer.observe(el))
 
-    // ── Retell widget: open + focus fix + branding overlay ───────────────
-    var lastActivity = 0
+    // ── Retell widget v2 hooks ────────────────────────────────────────────
+    // The v2 widget renders inside an OPEN shadow root on a div under
+    // #retell-widget-root — there is no <retell-chat> element. Header logo
+    // and title come from the official data-logo-url / data-title attributes.
+    // The "Powered by Retell" credit is rebranded in-place below; replace
+    // that with an official data-white-label token once obtained from Retell.
 
-    // Track user activity in the chat area
-    document.addEventListener('keydown', function() { lastActivity = Date.now() }, true)
-    document.addEventListener('pointerdown', function(e) {
-      var host = document.querySelector('retell-chat')
-      if (!host) return
-      var r = host.getBoundingClientRect()
-      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
-        lastActivity = Date.now()
+    function retellShadow() {
+      var root = document.getElementById('retell-widget-root')
+      if (!root) return null
+      for (var i = 0; i < root.children.length; i++) {
+        if (root.children[i].shadowRoot) return root.children[i].shadowRoot
       }
-    }, true)
+      return null
+    }
 
-    // Refocus loop — clicks bottom of chat panel if body stole focus after chat activity
-    setInterval(function() {
-      var active = document.activeElement
-      if (active && active !== document.body && active !== document.documentElement) return
-      if (Date.now() - lastActivity > 900) return
-      var host = document.querySelector('retell-chat')
-      if (!host) return
-      var r = host.getBoundingClientRect()
-      if (r.width === 0) return
-      var target = document.elementFromPoint(r.left + r.width / 2, r.bottom - 36)
-      if (target && target !== document.body && target !== document.documentElement) {
-        target.click()
-        lastActivity = 0
-      }
-    }, 180)
-
-    // ── Branding overlay: CareSync infinity logo + "CareSync" ──
-    var LOGO_SVG = [
-      '<svg width="32" height="21" viewBox="0 0 80 52" fill="none" xmlns="http://www.w3.org/2000/svg">',
-        '<defs>',
-          '<linearGradient id="csG1" x1="0" y1="0" x2="80" y2="52" gradientUnits="userSpaceOnUse">',
-            '<stop offset="0%" stop-color="#2ECC71"/>',
-            '<stop offset="45%" stop-color="#16A085"/>',
-            '<stop offset="100%" stop-color="#1A6FA4"/>',
-          '</linearGradient>',
-          '<linearGradient id="csG2" x1="80" y1="0" x2="0" y2="52" gradientUnits="userSpaceOnUse">',
-            '<stop offset="0%" stop-color="#1A6FA4"/>',
-            '<stop offset="55%" stop-color="#16A085"/>',
-            '<stop offset="100%" stop-color="#2ECC71"/>',
-          '</linearGradient>',
-        '</defs>',
-        // Outer left loop (green dominant)
-        '<path d="M40 26 C36 16 26 8 18 8 C8 8 2 16 2 26 C2 36 8 44 18 44 C26 44 36 36 40 26 Z" stroke="url(#csG1)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-        // Outer right loop (blue dominant)
-        '<path d="M40 26 C44 16 54 8 62 8 C72 8 78 16 78 26 C78 36 72 44 62 44 C54 44 44 36 40 26 Z" stroke="url(#csG2)" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
-        // Inner highlight — left arc
-        '<path d="M40 26 C37 20 30 15 24 16 C20 17 17 21 18 26" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.45"/>',
-        // Inner highlight — right arc
-        '<path d="M40 26 C43 20 50 15 56 16 C60 17 63 21 62 26" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" opacity="0.45"/>',
-      '</svg>'
-    ].join('')
-
-    // Header overlay — covers Retell logo + name in top bar
-    var brandOverlay = document.createElement('div')
-    brandOverlay.style.cssText = 'position:fixed;z-index:99999;display:none;align-items:center;gap:9px;padding-left:12px;background:#1D6FA4;pointer-events:none;user-select:none;height:56px;'
-    brandOverlay.innerHTML = LOGO_SVG + '<div style="display:flex;flex-direction:column;line-height:1.2;">' +
-      '<span style="color:white;font-weight:700;font-size:14px;font-family:\'Plus Jakarta Sans\',sans-serif;letter-spacing:-0.2px;">CareSync</span>' +
-      '<span style="color:rgba(255,255,255,0.65);font-weight:500;font-size:10px;font-family:\'Plus Jakarta Sans\',sans-serif;">Primary Coastal Care</span>' +
-    '</div>'
-    document.body.appendChild(brandOverlay)
-
-    // Footer overlay — covers "Powered by Retell" at bottom of widget
-    var footerOverlay = document.createElement('div')
-    footerOverlay.style.cssText = 'position:fixed;z-index:99999;display:none;align-items:center;justify-content:center;gap:6px;background:#ffffff;pointer-events:none;user-select:none;height:30px;border-top:1px solid #E2E8F0;'
-    footerOverlay.innerHTML = LOGO_SVG.replace('width="32" height="21"','width="18" height="12"') +
-      '<span style="color:#64748B;font-size:11px;font-weight:500;font-family:\'Plus Jakarta Sans\',sans-serif;">Powered by <strong style=\"color:#1D6FA4;font-weight:700;\">CareSync</strong></span>'
-    document.body.appendChild(footerOverlay)
+    // Used by the "Start Chat Now" hero button
+    function openRetellChat() {
+      var shadow = retellShadow()
+      if (!shadow) return
+      var win = shadow.querySelector('[class*="_window_"]')
+      if (win && win.getBoundingClientRect().width > 0) return // already open
+      var fab = shadow.querySelector('button[class*="_fab"]')
+      if (fab) fab.click()
+    }
 
     // ── New Chat button: reloads widget for a fresh conversation ──────────
     var newChatBtn = document.createElement('button')
@@ -811,17 +766,18 @@
     newChatBtn.addEventListener('mouseleave', function() { newChatBtn.style.background = '#1D6FA4' })
     newChatBtn.addEventListener('click', function() {
       // Remove existing widget and script, then re-inject for a fresh session
-      var existingChat = document.querySelector('retell-chat')
-      if (existingChat) existingChat.remove()
+      var existingRoot = document.getElementById('retell-widget-root')
+      if (existingRoot) existingRoot.remove()
       var existingScript = document.getElementById('retell-widget')
       if (existingScript) existingScript.remove()
       var s = document.createElement('script')
       s.id = 'retell-widget'
       s.src = 'https://dashboard.retellai.com/retell-widget-v2.js'
       s.type = 'module'
-      s.setAttribute('data-public-key',         'public_key_9a7798ad73f1686e462f5')
-      s.setAttribute('data-agent-id',            'agent_9f15f68497ac5143bbb8f9c14c')
-      s.setAttribute('data-title',               'Primary Coastal Care')
+      s.setAttribute('data-public-key',         'public_key_1d9409f2614fc5ca5358d')
+      s.setAttribute('data-agent-id',            'agent_e5d6b6f3ee5f047d5c4c851084')
+      s.setAttribute('data-title',               'Live agent')
+      s.setAttribute('data-logo-url',            '/live-agent.svg')
       s.setAttribute('data-bot-name',            'PCC Assistant')
       s.setAttribute('data-color',               '#1D6FA4')
       s.setAttribute('data-theme-color',         '#FFFFFF')
@@ -832,78 +788,34 @@
       s.setAttribute('data-show-ai-popup-time',  '2')
       s.setAttribute('data-auto-open',           'true')
       document.head.appendChild(s)
-      lastActivity = 0
     })
     document.body.appendChild(newChatBtn)
 
+    // Position "New Chat" above the open panel + rebrand the footer credit
     setInterval(function() {
-      var host = document.querySelector('retell-chat')
-      if (!host) {
-        brandOverlay.style.display = 'none'
-        footerOverlay.style.display = 'none'
-        newChatBtn.style.display = 'none'
-        return
-      }
-      var r = host.getBoundingClientRect()
-      if (r.width === 0) {
-        brandOverlay.style.display = 'none'
-        footerOverlay.style.display = 'none'
+      var shadow = retellShadow()
+      var win = shadow && shadow.querySelector('[class*="_window_"]')
+      var r = win && win.getBoundingClientRect()
+      if (!r || r.width === 0) {
         newChatBtn.style.display = 'none'
         return
       }
 
-      // Header: cover Retell logo/name — left 65% avoids the X close button
-      brandOverlay.style.display = 'flex'
-      brandOverlay.style.top    = r.top + 'px'
-      brandOverlay.style.left   = r.left + 'px'
-      brandOverlay.style.width  = Math.round(r.width * 0.65) + 'px'
-
-      // Footer: cover "Powered by Retell" — full width, last ~30px of panel
-      footerOverlay.style.display = 'flex'
-      footerOverlay.style.top     = (r.bottom - 30) + 'px'
-      footerOverlay.style.left    = r.left + 'px'
-      footerOverlay.style.width   = r.width + 'px'
-
-      // "New Chat" button above panel, right-aligned
       newChatBtn.style.display = 'flex'
       newChatBtn.style.top     = (r.top - 42) + 'px'
       newChatBtn.style.left    = (r.right - 110) + 'px'
-    }, 300)
 
-    ;(function setupRetell() {
-      var attempts = 0
-      var opened   = false
-
-      function trySetup() {
-        attempts++
-        var el = document.querySelector('retell-chat')
-        if (!el) {
-          if (attempts < 50) setTimeout(trySetup, 200)
-          return
-        }
-
-        // Open the widget
-        if (!opened) {
-          if (typeof el.open === 'function') { el.open(); opened = true }
-          else {
-            var shadow = el.shadowRoot
-            if (shadow) {
-              var btn = shadow.querySelector('button')
-              if (btn) { btn.click(); opened = true }
-            }
-            if (!opened) {
-              el.dispatchEvent(new MouseEvent('click', { bubbles: true, composed: true, cancelable: true }))
-            }
-          }
-        }
-
-        if (!opened) {
-          if (attempts < 50) setTimeout(trySetup, 300)
-        }
+      // "Powered by Retell" → "Powered by CareSync". Edit the link in place
+      // (never remove nodes — the widget's renderer owns them and reapplies,
+      // so this check runs every tick)
+      var credit = shadow.querySelector('[class*="poweredBy"] a')
+      if (credit && credit.textContent !== 'CareSync') {
+        credit.textContent = 'CareSync'
+        credit.removeAttribute('href')
+        credit.style.pointerEvents = 'none'
+        credit.style.textDecoration = 'none'
       }
-
-      setTimeout(trySetup, 800)
-    })()
+    }, 300)
   </script>
 </body>
 </html>
