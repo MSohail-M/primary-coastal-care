@@ -803,29 +803,35 @@
       newChatBtn.style.top     = (r.top - 42) + 'px'
       newChatBtn.style.left    = (r.right - 110) + 'px'
 
-      // Inject CSS once to hide Retell header logo + add "Alice is Live" label
+      // Find the "Retell" text leaf-element and replace with "Alice is Live" + pulse dot.
+      // Retell renders their logo as SVG + text span; class names are hashed CSS modules
+      // so we can't target them by name — instead we search by rendered text content.
       if (!shadow._branded) {
-        var style = document.createElement('style')
-        style.textContent = [
-          'img[src*="retell"]{display:none!important}',
-          '[class*="logo"] img{display:none!important}',
-          '[class*="Logo"] img{display:none!important}',
-          '[class*="brand"] img{display:none!important}',
-          '#alice-live-label{display:flex!important;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.01em}',
-          '#alice-live-label .dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 6px #4ADE80;animation:pulse 2s ease-in-out infinite}',
-          '@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}',
-        ].join('')
-        shadow.appendChild(style)
-        shadow._branded = true
-      }
-
-      // Inject "Alice is Live" label next to where the logo was
-      var logoArea = shadow.querySelector('[class*="logo"], [class*="Logo"], [class*="brand"]')
-      if (logoArea && !shadow.querySelector('#alice-live-label')) {
-        var label = document.createElement('div')
-        label.id = 'alice-live-label'
-        label.innerHTML = '<span class="dot"></span>Alice is Live'
-        logoArea.appendChild(label)
+        var all = shadow.querySelectorAll('*')
+        for (var i = 0; i < all.length; i++) {
+          var el = all[i]
+          if (el.children.length === 0 && el.textContent.trim() === 'Retell') {
+            // Inject pulse animation
+            var kf = document.createElement('style')
+            kf.textContent = '@keyframes alicePulse{0%,100%{opacity:1}50%{opacity:.5}}'
+            shadow.appendChild(kf)
+            // Hide SVG siblings in same parent (the dots logo icon)
+            if (el.parentElement) {
+              Array.from(el.parentElement.children).forEach(function(c) {
+                if (c.tagName.toLowerCase() === 'svg') c.style.display = 'none'
+              })
+            }
+            // Replace text with branded label
+            el.textContent = ''
+            var dot = document.createElement('span')
+            dot.style.cssText = 'display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 6px #4ADE80;animation:alicePulse 2s ease-in-out infinite;flex-shrink:0;margin-right:5px;vertical-align:middle'
+            el.appendChild(dot)
+            el.appendChild(document.createTextNode('Alice is Live'))
+            el.style.cssText += ';display:inline-flex;align-items:center;font-weight:700;'
+            shadow._branded = true
+            break
+          }
+        }
       }
 
       // "Powered by Retell" → "Powered by CareSync"
