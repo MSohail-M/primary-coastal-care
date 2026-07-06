@@ -803,7 +803,7 @@
       newChatBtn.style.top     = (r.top - 42) + 'px'
       newChatBtn.style.left    = (r.right - 110) + 'px'
 
-      // Inject CSS once to hide Retell header logo
+      // Inject CSS once to hide Retell header logo + add "Alice is Live" label
       if (!shadow._branded) {
         var style = document.createElement('style')
         style.textContent = [
@@ -811,10 +811,21 @@
           '[class*="logo"] img{display:none!important}',
           '[class*="Logo"] img{display:none!important}',
           '[class*="brand"] img{display:none!important}',
-          'a[href*="retell"]:not([class*="powered"]):not([class*="credit"]){pointer-events:none!important}',
+          '#alice-live-label{display:flex!important;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#fff;letter-spacing:-0.01em}',
+          '#alice-live-label .dot{width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 6px #4ADE80;animation:pulse 2s ease-in-out infinite}',
+          '@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}',
         ].join('')
         shadow.appendChild(style)
         shadow._branded = true
+      }
+
+      // Inject "Alice is Live" label next to where the logo was
+      var logoArea = shadow.querySelector('[class*="logo"], [class*="Logo"], [class*="brand"]')
+      if (logoArea && !shadow.querySelector('#alice-live-label')) {
+        var label = document.createElement('div')
+        label.id = 'alice-live-label'
+        label.innerHTML = '<span class="dot"></span>Alice is Live'
+        logoArea.appendChild(label)
       }
 
       // "Powered by Retell" → "Powered by CareSync"
