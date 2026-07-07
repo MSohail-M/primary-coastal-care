@@ -803,35 +803,37 @@
       newChatBtn.style.top     = (r.top - 42) + 'px'
       newChatBtn.style.left    = (r.right - 110) + 'px'
 
-      // Find the "Retell" text leaf-element and replace with "Alice is Live" + pulse dot.
-      // Retell renders their logo as SVG + text span; class names are hashed CSS modules
-      // so we can't target them by name — instead we search by rendered text content.
+      // Replace "Retell" header branding with "Alice is Live".
+      // Retell uses hashed CSS module class names AND an SVG+text structure, so we use
+      // a TreeWalker to find the exact text node containing "Retell" rather than class selectors.
       if (!shadow._branded) {
-        var all = shadow.querySelectorAll('*')
-        for (var i = 0; i < all.length; i++) {
-          var el = all[i]
-          if (el.children.length === 0 && el.textContent.trim() === 'Retell') {
-            // Inject pulse animation
-            var kf = document.createElement('style')
-            kf.textContent = '@keyframes alicePulse{0%,100%{opacity:1}50%{opacity:.5}}'
-            shadow.appendChild(kf)
-            // Hide SVG siblings in same parent (the dots logo icon)
-            if (el.parentElement) {
-              Array.from(el.parentElement.children).forEach(function(c) {
-                if (c.tagName.toLowerCase() === 'svg') c.style.display = 'none'
+        try {
+          var walker = document.createTreeWalker(shadow, NodeFilter.SHOW_TEXT, null)
+          var tnode
+          while ((tnode = walker.nextNode())) {
+            if (tnode.nodeValue && tnode.nodeValue.trim() === 'Retell') {
+              var holder = tnode.parentElement
+              if (!holder) continue
+              // Inject animation keyframe once
+              var kf = document.createElement('style')
+              kf.textContent = '@keyframes alicePulse{0%,100%{opacity:1}50%{opacity:.5}}'
+              shadow.appendChild(kf)
+              // Hide SVG siblings in the same parent container (the dots logo icon)
+              var container = holder.parentElement || holder
+              Array.from(container.children).forEach(function(c) {
+                if (c !== holder && c.tagName.toLowerCase() === 'svg') c.style.display = 'none'
               })
+              // Replace the text node with "Alice is Live" + pulse dot
+              var dot = document.createElement('span')
+              dot.style.cssText = 'display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 6px #4ADE80;animation:alicePulse 2s ease-in-out infinite;flex-shrink:0;margin-right:5px;vertical-align:middle'
+              tnode.nodeValue = 'Alice is Live'
+              holder.insertBefore(dot, holder.firstChild)
+              holder.style.cssText += ';display:inline-flex;align-items:center;font-weight:700;'
+              shadow._branded = true
+              break
             }
-            // Replace text with branded label
-            el.textContent = ''
-            var dot = document.createElement('span')
-            dot.style.cssText = 'display:inline-block;width:7px;height:7px;border-radius:50%;background:#4ADE80;box-shadow:0 0 6px #4ADE80;animation:alicePulse 2s ease-in-out infinite;flex-shrink:0;margin-right:5px;vertical-align:middle'
-            el.appendChild(dot)
-            el.appendChild(document.createTextNode('Alice is Live'))
-            el.style.cssText += ';display:inline-flex;align-items:center;font-weight:700;'
-            shadow._branded = true
-            break
           }
-        }
+        } catch(e) {}
       }
 
       // "Powered by Retell" → "Powered by CareSync"
